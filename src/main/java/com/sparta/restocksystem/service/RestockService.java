@@ -87,25 +87,39 @@ public class RestockService {
 
     // 각 유저에게 알림 발송 + 예외처리
     private void sendNotificationsToUsers(Product product, ProductNotificationHistory notificationHistory, List<ProductUserNotification> userList) {
+        int batchSize = 500; // 알림 메시지는 1초에 최대 500개
         Long lastUserId = null; // 마지막 유저 ID 추적 변수
-        for (ProductUserNotification userNotification : userList) {
-            try {
-                // 마지막 유저 ID를 추적
-                lastUserId = userNotification.getId();
 
-                // 재고가 없는 경우 처리
-                if (isOutOfStock(product)) {
-                    handleOutOfStock(notificationHistory, lastUserId); // 항상 최신 lastUserId 전달
-                    return; // 종료
+        for (int i = 0; i < userList.size(); i += batchSize) {
+
+            // 배치 단위로 유저 리스트 가져오기
+            List<ProductUserNotification> batch = userList.subList(i, Math.min(i + batchSize, userList.size()));
+
+            for (ProductUserNotification userNotification : batch) {
+                try {
+                    // 마지막 유저 ID를 추적
+                    lastUserId = userNotification.getId();
+                    // 재고가 없는 경우 처리
+                    if (isOutOfStock(product)) {
+                        handleOutOfStock(notificationHistory, lastUserId);
+                        return; // 종료
+                    }
+                    // 개별 유저에게 알림 발송
+                    saveUserNotificationHistory(product, userNotification, notificationHistory);
+                    System.out.println(userNotification.getId() + "번째 유저에게 알림 전송 완료");
+                } catch (Exception e) {
+                    // 알림 발송 중 오류 처리 + 마지막 유저 ID 저장
+                    handleNotificationError(product, notificationHistory, userNotification, e);
+                    return; // 에러 발생 시 종료
                 }
-
-                // 개별 유저에게 알림 발송
-                saveUserNotificationHistory(product, userNotification, notificationHistory);
-                System.out.println(userNotification.getId() + "번째 유저에게 알림 전송 완료!");
-            } catch (Exception e) {
-                // 알림 발송 중 오류 처리 + 마지막 유저 ID 저장
-                handleNotificationError(product, notificationHistory, userNotification, e);
-                return; // 에러 발생 시 종료
+            }
+            // 배치 한번 처리 후 1초 대기
+            try {
+                Thread.sleep(1000);
+                System.out.println("1초 대기 완료. 다음 배치 처리 시작");
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException("배치 처리 중 오류 발생 : " + e);
             }
         }
     }
