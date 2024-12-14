@@ -92,13 +92,11 @@ public class RestockService {
             try {
                 // 마지막 유저 ID를 추적
                 lastUserId = userNotification.getId();
-
                 // 재고가 없는 경우 처리
                 if (isOutOfStock(product)) {
                     handleOutOfStock(notificationHistory, lastUserId); // 항상 최신 lastUserId 전달
                     return; // 종료
                 }
-
                 // 개별 유저에게 알림 발송
                 saveUserNotificationHistory(product, userNotification, notificationHistory);
                 System.out.println(userNotification.getId() + "번째 유저에게 알림 전송 완료!");
