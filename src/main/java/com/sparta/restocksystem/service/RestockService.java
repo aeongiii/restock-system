@@ -9,11 +9,13 @@ import com.sparta.restocksystem.repository.ProductRepository;
 import com.sparta.restocksystem.repository.ProductUserNotificationHistoryRepository;
 import com.sparta.restocksystem.repository.ProductUserNotificationRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PostMapping;
 
 import java.util.List;
 
 @Service
+@Transactional
 public class RestockService {
 
     private final ProductRepository productRepository;
@@ -109,7 +111,8 @@ public class RestockService {
     }
 
     // 유저 리스트 가져오기
-    private List<ProductUserNotification> fetchUserList(Long productId) {
+    @Transactional(readOnly = true)
+    public List<ProductUserNotification> fetchUserList(Long productId) {
         List<ProductUserNotification> userList = productUserNotificationRepository.findByProductIdOrderByIdAsc(productId);
         System.out.println("userList 불러오기 완료");
         return userList;

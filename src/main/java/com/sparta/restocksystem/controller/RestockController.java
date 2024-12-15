@@ -23,6 +23,6 @@ public class RestockController {
         restockService.sendNotification(productId);
 
         return ResponseEntity.ok().build(); // 상태코드 200 반환
-}
+    }
 
 }
