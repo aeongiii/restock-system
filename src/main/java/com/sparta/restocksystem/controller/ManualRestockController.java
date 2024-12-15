@@ -6,21 +6,21 @@ import com.sparta.restocksystem.service.RestockService;
 
 
 @RestController
-@RequestMapping("/products")
-public class RestockController {
+@RequestMapping("/admin/products")
+public class ManualRestockController {
 
     private final RestockService restockService;
 
-    public RestockController(RestockService restockService) {
-        this.restockService= restockService;
+    public ManualRestockController(RestockService restockService) {
+        this.restockService = restockService;
     }
 
     // 알림 발송
     @PostMapping(value = "/{productId}/notifications/re-stock")
-    public ResponseEntity<Void> sendNotification (@PathVariable Long productId) {
+    public ResponseEntity<Void> manualSendNotification(@PathVariable Long productId) {
 
         // 서비스 호출
-        restockService.sendNotification(productId);
+        restockService.manualSendNotification(productId);
 
         return ResponseEntity.ok().build(); // 상태코드 200 반환
     }

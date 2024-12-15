@@ -8,5 +8,9 @@ import java.util.List;
 
 @Repository
 public interface ProductUserNotificationRepository extends JpaRepository<ProductUserNotification, Long> {
+    // 유저 리스트 가져오기
     List<ProductUserNotification> findByProductIdOrderByIdAsc(Long productId);
+
+    // lastuserid 이후 유저부터 리스트 가져오기
+    List<ProductUserNotification> findByProductIdAndIdGreaterThanOrderByIdAsc(Long productId, Long lastUserId);
 }
