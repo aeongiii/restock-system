@@ -57,7 +57,7 @@ public class RestockService {
         Product product = updateProductRestockRound(productId);
 
         // 기존 발송 정보 확인
-        ProductNotificationHistory notificationHistory = (ProductNotificationHistory) productNotificationHistoryRepository.findByProductId(productId)
+        ProductNotificationHistory notificationHistory = productNotificationHistoryRepository.findByProductIdWithLock(productId) // 비관적 락 사용
                 .orElseThrow(() -> new IllegalArgumentException("해당 상품에 대한 기존 발송 정보가 없습니다. productId = " + productId));
 
         // 마지막 발송 유저 아이디 확인
@@ -85,7 +85,7 @@ public class RestockService {
 
     // 재입고 회차 +1
     private Product updateProductRestockRound(Long productId) {
-        Product product = productRepository.findById(productId)
+        Product product = productRepository.findByIdWithLock(productId) // 비관적 락 사용
                 .orElseThrow(() -> new IllegalArgumentException("상품이 존재하지 않습니다. productId : " + productId));
         product.setRestockRound(product.getRestockRound() + 1);
         product.setStockStatus(Product.StockStatus.IN_STOCK);
