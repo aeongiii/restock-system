@@ -9,6 +9,7 @@ import com.sparta.restocksystem.repository.ProductRepository;
 import com.sparta.restocksystem.repository.ProductUserNotificationHistoryRepository;
 import com.sparta.restocksystem.repository.ProductUserNotificationRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.PostMapping;
 
 import java.util.List;
 
@@ -43,6 +44,35 @@ public class RestockService {
 
         // 각 유저에게 알림 발송 + 예외처리
         sendNotificationsToUsers(product, notificationHistory, userList);
+
+        // 모든 유저에게 알림 발송 성공 시 상태 COMPLETED로 변경
+        completeNotification(notificationHistory, product);
+    }
+
+    // (manual) 알림 발송
+    public void manualSendNotification(Long productId) {
+        // 기존 발송 정보 확인
+        ProductNotificationHistory notificationHistory = (ProductNotificationHistory) productNotificationHistoryRepository.findByProductId(productId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 상품에 대한 기존 발송 정보가 없습니다. productId = " + productId));
+
+        // 마지막 발송 유저 아이디 확인
+        Long lastUserId = notificationHistory.getLastNotificationUserId();
+
+        // 상품 정보 가져오기
+        Product product = notificationHistory.getProduct();
+
+        // lastUserId 다음 유저부터 리스트 가져오기
+        List<ProductUserNotification> userList = productUserNotificationRepository.findByProductIdAndIdGreaterThanOrderByIdAsc(productId, lastUserId);
+
+        System.out.println(userList.size() + "명의 유저에게 Manual 알림 발송 시작");
+
+        // 각 유저에게 알림 발송 + 예외처리
+        try {
+            sendNotificationsToUsers(product, notificationHistory, userList);
+        } catch (Exception e) {
+            System.out.println("Manual 알림 발송 중 오류 발생 : " + e.getMessage());
+            throw new RuntimeException("Manual 알림 발송 중 오류 발생 : ", e);
+        }
 
         // 모든 유저에게 알림 발송 성공 시 상태 COMPLETED로 변경
         completeNotification(notificationHistory, product);
@@ -97,7 +127,7 @@ public class RestockService {
                     handleOutOfStock(notificationHistory, lastUserId); // 항상 최신 lastUserId 전달
                     return; // 종료
                 }
-                // 개별 유저에게 알림 발송
+                // 개별 유저에게 알림 발송 + 마지막 유저 ID 저장
                 saveUserNotificationHistory(product, userNotification, notificationHistory);
                 System.out.println(userNotification.getId() + "번째 유저에게 알림 전송 완료!");
             } catch (Exception e) {
@@ -126,7 +156,7 @@ public class RestockService {
         System.out.println("재고가 없어 알림 발송을 중단했습니다.");
     }
 
-    // 개별 유저에게 알림 발송
+    // 개별 유저에게 알림 발송 + 마지막 유저 ID 저장
     private void saveUserNotificationHistory(Product product, ProductUserNotification userNotification, ProductNotificationHistory notificationHistory) {
         ProductUserNotificationHistory history = new ProductUserNotificationHistory();
         history.setProduct(product);
