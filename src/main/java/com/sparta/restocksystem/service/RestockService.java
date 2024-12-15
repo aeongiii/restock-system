@@ -117,27 +117,49 @@ public class RestockService {
 
     // 각 유저에게 알림 발송 + 예외처리
     private void sendNotificationsToUsers(Product product, ProductNotificationHistory notificationHistory, List<ProductUserNotification> userList) {
+        int batchSize = 500; // 배치 크기 설정
         Long lastUserId = null; // 마지막 유저 ID 추적 변수
-        for (ProductUserNotification userNotification : userList) {
-            try {
-                // 마지막 유저 ID를 추적
-                lastUserId = userNotification.getId();
-                // 재고가 없는 경우 처리
-                if (isOutOfStock(product)) {
-                    handleOutOfStock(notificationHistory, lastUserId); // 항상 최신 lastUserId 전달
-                    return; // 종료
+
+        // 전체 유저 리스트를 배치 단위로 나누어 처리
+        for (int i = 0; i < userList.size(); i += batchSize) {
+            // 현재 배치 추출
+            List<ProductUserNotification> batch = userList.subList(i, Math.min(i + batchSize, userList.size()));
+
+            for (ProductUserNotification userNotification : batch) {
+                try {
+                    // 마지막 유저 ID를 추적
+                    lastUserId = userNotification.getId();
+                    // 재고가 없는 경우 처리
+                    if (isOutOfStock(product)) {
+                        handleOutOfStock(notificationHistory, lastUserId); // 항상 최신 lastUserId 전달
+                        return; // 종료
+                    }
+                    // 개별 유저에게 알림 발송 + 마지막 유저 ID 저장
+                    saveUserNotificationHistory(product, userNotification, notificationHistory);
+                    System.out.println(userNotification.getId() + "번째 유저에게 알림 전송 완료!");
+                } catch (Exception e) {
+                    // 알림 발송 중 오류 처리 + 마지막 유저 ID 저장
+                    handleNotificationError(product, notificationHistory, userNotification, e);
+                    return; // 에러 발생 시 종료
                 }
-                // 개별 유저에게 알림 발송 + 마지막 유저 ID 저장
-                saveUserNotificationHistory(product, userNotification, notificationHistory);
-                System.out.println(userNotification.getId() + "번째 유저에게 알림 전송 완료!");
-            } catch (Exception e) {
-                // 알림 발송 중 오류 처리 + 마지막 유저 ID 저장
-                handleNotificationError(product, notificationHistory, userNotification, e);
-                return; // 에러 발생 시 종료
+            }
+
+            // 배치 완료 후 1초 대기
+            try {
+                Thread.sleep(1000);
+                System.out.println("500개 알림 발송 완료. 1초 대기 후 다음 배치 처리 시작");
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException("배치 처리 중 인터럽트 발생", e);
             }
         }
-    }
 
+        // 마지막 유저 ID 갱신
+        if (!userList.isEmpty()) {
+            notificationHistory.setLastNotificationUserId(userList.get(userList.size() - 1).getId());
+            productNotificationHistoryRepository.save(notificationHistory);
+        }
+    }
     // 재고 있는지 없는지 : T/F 반환
     private boolean isOutOfStock(Product product) {
         return product.getStockStatus() == Product.StockStatus.OUT_OF_STOCK;
