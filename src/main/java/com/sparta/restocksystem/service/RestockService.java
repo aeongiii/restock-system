@@ -96,7 +96,7 @@ public class RestockService {
 
     // 재입고 알림 발송 상태 IN_PROGRESS 로 변경
     private ProductNotificationHistory updateNotificationHistory(Product product, Long productId) {
-        ProductNotificationHistory notificationHistory = (ProductNotificationHistory) productNotificationHistoryRepository.findByProductId(productId)
+        ProductNotificationHistory notificationHistory = productNotificationHistoryRepository.findByProductIdWithLock(productId)
                 .orElseGet(() -> {
                     ProductNotificationHistory newHistory = new ProductNotificationHistory();
                     newHistory.setProduct(product);
@@ -104,6 +104,7 @@ public class RestockService {
                 });
         notificationHistory.setProduct(product);
         notificationHistory.setRestockNotificationStatus(ProductNotificationHistory.RestockNotificationStatus.IN_PROGRESS);
+        System.out.println("productNotificationHistory에 저장할 RestockRound : " + product.getRestockRound());
         notificationHistory.setRestockRound(product.getRestockRound());
         productNotificationHistoryRepository.save(notificationHistory);
         System.out.println("재입고 알림 발송 상태 IN_PROGRESS로 변경 완료");
