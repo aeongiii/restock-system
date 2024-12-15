@@ -51,15 +51,15 @@ public class RestockService {
 
     // (manual) 알림 발송
     public void manualSendNotification(Long productId) {
+        // 재입고 회차 +1
+        Product product = updateProductRestockRound(productId);
+
         // 기존 발송 정보 확인
         ProductNotificationHistory notificationHistory = (ProductNotificationHistory) productNotificationHistoryRepository.findByProductId(productId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 상품에 대한 기존 발송 정보가 없습니다. productId = " + productId));
 
         // 마지막 발송 유저 아이디 확인
         Long lastUserId = notificationHistory.getLastNotificationUserId();
-
-        // 상품 정보 가져오기
-        Product product = notificationHistory.getProduct();
 
         // lastUserId 다음 유저부터 리스트 가져오기
         List<ProductUserNotification> userList = productUserNotificationRepository.findByProductIdAndIdGreaterThanOrderByIdAsc(productId, lastUserId);
