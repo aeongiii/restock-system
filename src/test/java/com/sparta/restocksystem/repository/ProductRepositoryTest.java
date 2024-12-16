@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @DataJpaTest // JPA 관련 테스트를 위한 설정. 내장 H2 를 사용한다.
+             // 꼭 spring.profiles.active=h2 로 변경하고 테스트하기!!
 class ProductRepositoryTest {
 
     @Autowired
@@ -20,6 +21,7 @@ class ProductRepositoryTest {
         Product product = new Product();
         product.setRestockRound(1L);
         product.setStockStatus(Product.StockStatus.IN_STOCK);
+        System.out.println("Saved Product: " + product); // 저장된 Product 로그 출력
 
         // When : Repository의 save와 findById 기능을 테스트
         Product savedProduct = productRepository.save(product); // product를 데이터베이스에 저장

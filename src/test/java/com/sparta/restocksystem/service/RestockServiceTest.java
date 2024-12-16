@@ -24,13 +24,16 @@ class RestockServiceTest {
     private RestockService restockService;
 
     @Mock
-    private ProductRepository productRepository;
+    private ProductService productService;
 
     @Mock
-    private ProductNotificationHistoryRepository notificationHistoryRepository;
+    private NotificationHistoryService notificationHistoryService;
 
     @Mock
     private ProductUserNotificationRepository productUserNotificationRepository;
+
+    @Mock
+    private UserNotificationService userNotificationService;
 
     private Product product;
 
@@ -48,28 +51,36 @@ class RestockServiceTest {
 
     @Test
     void testSendNotification_Success() {
-    // Given
-        when(productRepository.findByIdWithLock(1L)).thenReturn(Optional.of(product));
-        when(notificationHistoryRepository.findByProductIdWithLock(1L)).thenReturn(Optional.empty());
-        when(productUserNotificationRepository.findByProductIdOrderByIdAsc(1L)).thenReturn(new ArrayList<>());
-    // When
-        restockService.sendNotification(1L); // 메서드 호출함
-    // Then
-        // productRepository.findByIdWithLock이 1번 호출되었는지 확인
-        verify(productRepository, times(1)).findByIdWithLock(1L);
-        // 재입고 회차가 2로 증가했는지 확인
+
+        // Given
+        when(productService.updateProductRestockRound(1L)).thenAnswer(invocation -> {
+            product.setRestockRound(product.getRestockRound() + 1);
+            return product;
+        });
+        when(notificationHistoryService.updateNotificationHistory(product, 1L))
+                .thenReturn(new ProductNotificationHistory());
+        when(userNotificationService.fetchUserList(1L))
+                .thenReturn(new ArrayList<>());
+
+        // when
+        restockService.sendNotification(1L);
+
+        // Then
+        verify(productService, times(1)).updateProductRestockRound(1L);
         assertEquals(2L, product.getRestockRound());
+
     }
 
     @Test // 상품이 존재하지 않았을 때 예외가 발생하는지 확인
     void testSendNotification_ProductNotFound() {
-    // Given
-        when(productRepository.findByIdWithLock(1L)).thenReturn(Optional.empty());
+        // Given
+        when(productService.updateProductRestockRound(1L))
+                .thenThrow(new IllegalArgumentException("상품이 존재하지 않습니다."));
 
-    // When & Then
+        // When & Then
         // restockService.sendNotification 호출 시 IllegalArgumentException이 발생하는지 확인
         assertThrows(IllegalArgumentException.class, () -> restockService.sendNotification(1L));
         // 알림 히스토리가 저장되지 않았는지 확인
-        verify(notificationHistoryRepository, never()).save(any());
+        verify(notificationHistoryService, never()).updateNotificationHistory(any(), anyLong());
     }
 }
