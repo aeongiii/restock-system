@@ -33,6 +33,7 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     implementation 'me.paulschwarz:spring-dotenv:4.0.0'
     testImplementation 'com.h2database:h2'
+    implementation 'com.google.guava:guava:32.0.1-jre' // Guava 라이브러리 (RateLimiter)
 }
 
 tasks.named('test') {
