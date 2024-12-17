@@ -1,0 +1,50 @@
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: restock_mysql_container
+    env_file:
+      - .env
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      - "3310:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql           # MySQL 데이터 저장 볼륨
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql  # 초기화 SQL 파일 마운트
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+
+  spring-boot-app:
+    build:
+      context: . # 현재 디렉토리를 기준으로 빌드
+      dockerfile: Dockerfile
+    image: restock-system:1.0  # 빌드한 버전에 맞게 수정
+    container_name: spring-boot-container
+    ports:
+      - "8083:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      SPRING_DATASOURCE_URL: ${DB_URL}
+      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+    networks:
+      - app-network
+
+volumes:
+  mysql_data:
+
+networks:
+  app-network:
